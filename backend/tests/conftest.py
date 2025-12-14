@@ -2,7 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, Text
+from sqlalchemy import create_engine, event, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -12,6 +12,9 @@ import uuid
 from app.main import app
 from app.db.base import Base
 from app.db import get_db
+from app.db.orms.user import User
+from app.core.deps import get_current_user
+from app.core.security import hash_password
 
 
 class GUID(TypeDecorator):
@@ -54,7 +57,7 @@ def _set_sqlite_pragma(target, connection, **kw):
                 if isinstance(column.type, UUID):
                     column.type = GUID()
                 elif isinstance(column.type, JSONB):
-                    column.type = Text()
+                    column.type = JSON()
 
 
 # Create in-memory SQLite database for testing
@@ -91,4 +94,36 @@ def client(test_db):
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def test_user(test_db):
+    """Create a test user in the database."""
+    db = TestingSessionLocal()
+    try:
+        user = User(
+            email="testuser@example.com",
+            password_hash=hash_password("testpass123")
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="function")
+def authenticated_client(test_db, test_user):
+    """Create a test client with authentication bypassed."""
+    def override_current_user():
+        return test_user
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
+
+    with TestClient(app) as test_client:
+        yield test_client
+
     app.dependency_overrides.clear()
