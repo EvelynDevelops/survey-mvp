@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: survey
       POSTGRES_DB: survey_mvp
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Using port 5433 on host
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
