@@ -3,7 +3,17 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(tree:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(brew services:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(cat:*)",
+      "Bash(pip install:*)",
+      "Bash(git add:*)"
     ]
   }
 }
