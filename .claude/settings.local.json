@@ -13,7 +13,9 @@
       "Bash(docker-compose restart:*)",
       "Bash(cat:*)",
       "Bash(pip install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(python -m app.db.init_tables:*)",
+      "Bash(python -m backend.app.db.init_tables:*)"
     ]
   }
 }
