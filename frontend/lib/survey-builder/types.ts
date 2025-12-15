@@ -1,114 +1,65 @@
 // frontend/lib/survey-builder/types.ts
 
-export const MAX_QUESTIONS = 100 as const;
-
-export type SurveyId = string;
-export type QuestionId = string;
-export type OptionId = string;
+export type SurveyStatus = "draft" | "published";
 
 export type QuestionType = "single" | "multiple" | "text" | "image";
 
-/**
- * A survey contains a list of questions.
- * "version" is useful if you later want migrations.
- */
-export type Survey = {
-  id: SurveyId;
-  title: string;
-  description?: string;
-  questions: Question[];
-  createdAt: string; // ISO
-  updatedAt: string; // ISO
-  version: number;
-};
-
-/**
- * Shared fields across all question types.
- */
-export type BaseQuestion = {
-  id: QuestionId;
-  type: QuestionType;
-  title: string; // question prompt
-  description?: string;
-  required: boolean;
-};
-
-/**
- * Choice option used by single/multiple choice questions.
- */
 export type ChoiceOption = {
-  id: OptionId;
+  id: string;
   label: string;
 };
 
-/**
- * 1) Single choice question
- */
+export type ImageUploadConfig = {
+  /** Allowed mime types (or wildcards like "image/*") */
+  accept: string[];
+  /** Max number of files */
+  maxFiles: number;
+  /** Max size per file in bytes */
+  maxSizeBytes: number;
+};
+
+export type BaseQuestion = {
+  id: string;
+  type: QuestionType;
+
+  title: string;
+  description?: string;
+
+  required: boolean;
+
+  /**
+   * Optional client-only fields you may want later.
+   * Keep it optional so it doesn't break persistence/publish.
+   */
+  clientMeta?: {
+    createdAt?: number;
+    updatedAt?: number;
+  };
+};
+
 export type SingleChoiceQuestion = BaseQuestion & {
   type: "single";
   options: ChoiceOption[];
-  /**
-   * Optional extras you can add later:
-   * randomizeOptions?: boolean;
-   * allowOther?: boolean;
-   */
 };
 
-/**
- * 2) Multiple choice question
- */
 export type MultipleChoiceQuestion = BaseQuestion & {
   type: "multiple";
   options: ChoiceOption[];
-  /**
-   * Optional constraints (nice-to-have)
-   * If you don't want this now, keep it undefined.
-   */
-  constraints?: {
-    minSelected?: number;
-    maxSelected?: number;
-  };
-  /**
-   * Optional extras:
-   * randomizeOptions?: boolean;
-   * allowOther?: boolean;
-   */
 };
 
-/**
- * 3) Text (open-ended) question
- * You called it "描述" - typically it's an open text response.
- */
 export type TextQuestion = BaseQuestion & {
   type: "text";
   placeholder?: string;
-  constraints?: {
-    minLength?: number;
-    maxLength?: number;
-  };
+  /**
+   * Optional: if you later want textarea vs input
+   */
+  multiline?: boolean;
+  maxLength?: number;
 };
 
-/**
- * 4) Image upload question (respondent uploads an image)
- */
 export type ImageUploadQuestion = BaseQuestion & {
   type: "image";
-  upload: {
-    /**
-     * MIME types or simple extensions. Keep it simple for MVP.
-     * Example: ["image/png", "image/jpeg"]
-     */
-    accept: string[];
-    /**
-     * Max file size in bytes.
-     * Example: 5MB = 5 * 1024 * 1024
-     */
-    maxSizeBytes: number;
-    /**
-     * Max number of images allowed (MVP can use 1).
-     */
-    maxFiles: number;
-  };
+  upload: ImageUploadConfig;
 };
 
 export type Question =
@@ -117,13 +68,31 @@ export type Question =
   | TextQuestion
   | ImageUploadQuestion;
 
-/**
- * Helper type: map question type -> concrete question type
- * Useful for factories and type-safe updates.
- */
-export type QuestionByType = {
-  single: SingleChoiceQuestion;
-  multiple: MultipleChoiceQuestion;
-  text: TextQuestion;
-  image: ImageUploadQuestion;
+export type Survey = {
+  id: string;
+  title: string;
+  description?: string;
+
+  status?: SurveyStatus;
+  slug?: string;
+
+  questions: Question[];
+
+  createdAt?: number;
+  updatedAt?: number;
 };
+
+/** Type guards (optional helpers; nice for non-TSX files) */
+export function isChoiceQuestion(
+  q: Question
+): q is SingleChoiceQuestion | MultipleChoiceQuestion {
+  return q.type === "single" || q.type === "multiple";
+}
+
+export function isImageQuestion(q: Question): q is ImageUploadQuestion {
+  return q.type === "image";
+}
+
+export function isTextQuestion(q: Question): q is TextQuestion {
+  return q.type === "text";
+}
