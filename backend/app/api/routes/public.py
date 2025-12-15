@@ -18,6 +18,10 @@ from app.schemas.response import (
     SubmitAnswersRequest,
     SubmitAnswersResponse,
     SubmitResponseResponse,
+    GetResponseResponse,
+    AnswerData,
+    ResumeResponseRequest,
+    ResumeResponseResponse,
 )
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -317,3 +321,119 @@ def _validate_answer(question: Question, answer: dict):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Each file must be a string (storage key)"
                 )
+
+
+@router.get("/responses/{response_id}", response_model=GetResponseResponse)
+def get_response(
+    response_id: uuid.UUID,
+    respondent_key: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a response with all its answers.
+
+    Requires respondent_key query parameter for security validation.
+    Returns 403 if respondent_key doesn't match.
+    Returns 404 if response not found.
+    """
+    # Get response
+    response = db.query(Response).filter(Response.id == response_id).first()
+    if not response:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Response not found"
+        )
+
+    # Validate respondent_key
+    if response.respondent_key != respondent_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid respondent key"
+        )
+
+    # Get all answers for this response
+    answers = db.query(Answer).filter(Answer.response_id == response_id).all()
+
+    return GetResponseResponse(
+        response_id=response.id,
+        survey_id=response.survey_id,
+        status=response.status,
+        respondent_key=response.respondent_key,
+        started_at=response.started_at,
+        submitted_at=response.submitted_at,
+        answers=[
+            AnswerData(
+                question_id=answer.question_id,
+                answer_json=answer.answer_json
+            )
+            for answer in answers
+        ]
+    )
+
+
+@router.post("/surveys/{slug}/responses/resume", response_model=ResumeResponseResponse)
+def resume_response(
+    slug: str,
+    request: ResumeResponseRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Get or create a response for a survey.
+
+    Idempotent endpoint that:
+    1. Returns existing in-progress response if found for this respondent_key
+    2. Creates a new response if none exists
+
+    Design choice: Only returns in-progress responses. If the user has already
+    submitted, we create a new response to allow multiple submissions per user.
+    This allows users to take the survey multiple times if needed.
+    """
+    # Verify survey exists and is published
+    survey = db.query(Survey).filter(
+        Survey.slug == slug,
+        Survey.status == "published"
+    ).first()
+
+    if not survey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Survey not found"
+        )
+
+    # Generate respondent_key if not provided
+    respondent_key = request.respondent_key or uuid.uuid4()
+
+    # Look for existing in-progress response
+    existing_response = db.query(Response).filter(
+        Response.survey_id == survey.id,
+        Response.respondent_key == respondent_key,
+        Response.status == "in_progress"
+    ).first()
+
+    if existing_response:
+        # Return existing in-progress response
+        return ResumeResponseResponse(
+            response_id=existing_response.id,
+            respondent_key=existing_response.respondent_key,
+            status=existing_response.status,
+            is_new=False
+        )
+
+    # Create new response
+    new_response = Response(
+        survey_id=survey.id,
+        status="in_progress",
+        respondent_key=respondent_key,
+        started_at=datetime.now(timezone.utc)
+    )
+
+    db.add(new_response)
+    db.commit()
+    db.refresh(new_response)
+
+    return ResumeResponseResponse(
+        response_id=new_response.id,
+        respondent_key=new_response.respondent_key,
+        status=new_response.status,
+        is_new=True
+    )

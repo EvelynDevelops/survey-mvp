@@ -32,8 +32,8 @@ def test_dashboard_no_submissions(authenticated_client):
     assert dashboard_response.status_code == 200
     data = dashboard_response.json()
     assert data["survey_id"] == survey_id
-    assert data["completed"] == 0
-    assert data["last_submission_at"] is None
+    assert data["total_submissions"] == 0
+    assert data["last_submitted_at"] is None
 
 
 def test_dashboard_with_completed_submissions(authenticated_client, client):
@@ -84,8 +84,8 @@ def test_dashboard_with_completed_submissions(authenticated_client, client):
     assert dashboard_response.status_code == 200
     data = dashboard_response.json()
     assert data["survey_id"] == survey_id
-    assert data["completed"] == 3
-    assert data["last_submission_at"] is not None
+    assert data["total_submissions"] == 3
+    assert data["last_submitted_at"] is not None
 
 
 def test_dashboard_ignores_in_progress_responses(authenticated_client, client):
@@ -144,8 +144,8 @@ def test_dashboard_ignores_in_progress_responses(authenticated_client, client):
 
     assert dashboard_response.status_code == 200
     data = dashboard_response.json()
-    assert data["completed"] == 1
-    assert data["last_submission_at"] is not None
+    assert data["total_submissions"] == 1
+    assert data["last_submitted_at"] is not None
 
 
 def test_dashboard_unauthorized_user_cannot_view(authenticated_client, test_db):
@@ -251,6 +251,6 @@ def test_dashboard_last_submission_at_is_most_recent(authenticated_client, clien
     assert dashboard_response.status_code == 200
     data = dashboard_response.json()
 
-    # last_submission_at should be the most recent (last) submission
+    # last_submitted_at should be the most recent (last) submission
     # Since submissions happen in order, the last one should be >= all others
-    assert data["last_submission_at"] == max(submission_times)
+    assert data["last_submitted_at"] == max(submission_times)
