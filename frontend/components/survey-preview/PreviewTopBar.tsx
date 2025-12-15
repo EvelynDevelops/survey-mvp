@@ -6,9 +6,10 @@ type Props = {
   title: string;
   onBack: () => void;
   onPublish?: () => void;
+  isPublishing?: boolean;
 };
 
-export function PreviewTopBar({ title, onBack, onPublish }: Props) {
+export function PreviewTopBar({ title, onBack, onPublish, isPublishing }: Props) {
   return (
     <div className="sticky top-0 z-20 bg-navy">
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between gap-4">
@@ -31,9 +32,10 @@ export function PreviewTopBar({ title, onBack, onPublish }: Props) {
           {onPublish ? (
             <button
               onClick={onPublish}
-              className="rounded-md bg-mint px-3 py-2 text-sm font-semibold text-navy hover:opacity-90"
+              disabled={isPublishing}
+              className="rounded-md bg-mint px-3 py-2 text-sm font-semibold text-navy hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Publish
+              {isPublishing ? 'Publishing...' : 'Publish'}
             </button>
           ) : null}
         </div>

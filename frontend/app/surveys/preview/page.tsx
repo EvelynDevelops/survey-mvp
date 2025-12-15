@@ -7,11 +7,14 @@ import { useSurveyDraft } from "@/hooks/useSurveyDraft";
 import { PreviewTopBar } from "@/components/survey-preview/PreviewTopBar";
 import { SurveyPreviewCard } from "@/components/survey-preview/SurveyPreviewCard";
 import { PreviewSummaryCard } from "@/components/survey-preview/PreviewSummaryCard";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getUserId } from "@/lib/auth";
+import { publishSurveyFlow } from "@/lib/surveysAdmin";
 
 export default function SurveyPreviewPage() {
   const router = useRouter();
   const { survey, isLoaded } = useSurveyDraft({ storageKey: "surveyBuilderDraft" });
+  const [isPublishing, setIsPublishing] = React.useState(false);
+  const [publishError, setPublishError] = React.useState<string | null>(null);
 
   // Check authentication on mount
   React.useEffect(() => {
@@ -23,6 +26,33 @@ export default function SurveyPreviewPage() {
   const onBack = React.useCallback(() => {
     router.push("/surveys/new");
   }, [router]);
+
+  const handlePublish = React.useCallback(async () => {
+    if (!survey) return;
+
+    setIsPublishing(true);
+    setPublishError(null);
+
+    try {
+      const result = await publishSurveyFlow(survey);
+
+      // Clear the draft from localStorage
+      localStorage.removeItem("surveyBuilderDraft");
+
+      // Redirect to dashboard
+      const userId = getUserId();
+      if (userId) {
+        router.push(`/dashboard/${userId}`);
+      } else {
+        router.push('/');
+      }
+    } catch (error: any) {
+      console.error('Failed to publish survey:', error);
+      setPublishError(error.message || 'Failed to publish survey. Please try again.');
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [survey, router]);
 
   if (!isLoaded) {
     return <div className="min-h-[calc(100vh-64px)] bg-lavender" />;
@@ -58,8 +88,17 @@ export default function SurveyPreviewPage() {
       <PreviewTopBar
         title={survey.title}
         onBack={onBack}
-        onPublish={() => alert("TODO: publish")}
+        onPublish={handlePublish}
+        isPublishing={isPublishing}
       />
+
+      {publishError && (
+        <div className="mx-auto max-w-6xl px-4 pt-4">
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-800">
+            <strong>Error:</strong> {publishError}
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
