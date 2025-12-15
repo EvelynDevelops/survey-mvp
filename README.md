@@ -1,6 +1,8 @@
 # Survey MVP
 
-A monorepo project containing both frontend and backend applications.
+A full-stack survey platform MVP for creating, publishing, and responding to surveys.
+
+Built with Next.js, FastAPI, and PostgreSQL, and deployed using Vercel and Google Cloud Run.
 
 ## Project Structure
 
@@ -8,6 +10,8 @@ A monorepo project containing both frontend and backend applications.
 survey-mvp/
 ├── frontend/          # Next.js frontend
 │   ├── app/          # Next.js App Router
+│   ├── components/   # React components
+│   ├── lib/          # Utilities and types
 │   ├── package.json
 │   └── next.config.js
 ├── backend/          # FastAPI backend
@@ -18,23 +22,22 @@ survey-mvp/
 └── docker-compose.yml # Docker Compose configuration
 ```
 
-## Development Guide
+## Tech Stack
 
-### Database Setup
+### Frontend
+- Next.js 14 (App Router)
+- React 18
+- TypeScript
+- Tailwind CSS
 
-Start PostgreSQL database:
+### Backend
+- FastAPI
+- SQLAlchemy
+- PostgreSQL 15
+- JWT Authentication
+- Passlib (bcrypt)
 
-```bash
-make db-start
-```
-
-Verify database connection:
-
-```bash
-make db-verify
-```
-
-For more database commands, see [DATABASE.md](DATABASE.md)
+## Local Development
 
 ### Frontend Development
 
@@ -44,7 +47,7 @@ npm install
 npm run dev
 ```
 
-Frontend dev server will run at http://localhost:3000
+Frontend dev server runs at: http://localhost:3000
 
 ### Backend Development
 
@@ -53,41 +56,32 @@ Frontend dev server will run at http://localhost:3000
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+docker-compose up -d db
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
 ```
 
-Backend API will run at http://localhost:8000
+Backend API runs at: http://localhost:8000
 
-#### Option 2: Run with Docker
-
-```bash
-docker-compose up --build
-```
-
-Backend API will run at http://localhost:8000
-
-### API Documentation
-
-FastAPI auto-generated API documentation:
+API Documentation:
 - Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
 ## Build & Deploy
 
 ### Frontend Build
 
-Frontend uses Next.js static export:
+Build the Next.js application:
 
 ```bash
 cd frontend
 npm run build
 ```
 
-Build output is in `frontend/out/` directory, ready to deploy to static hosting services (Vercel, Netlify, S3, etc.).
+The build generates an optimized production build. Deployed on **Vercel**.
 
 ### Backend Deployment
 
-Backend uses Docker containerization:
+Backend uses Docker containerization and is deployed on **Google Cloud Run**:
 
 ```bash
 cd backend
@@ -101,19 +95,31 @@ Or use docker-compose:
 docker-compose up -d
 ```
 
-## Tech Stack
+### Production Environment
 
-### Frontend
-- Next.js 14 (App Router)
-- React 18
-- TypeScript
+- **Frontend**: Deployed on Vercel
+- **Backend**: Dockerized FastAPI app on Google Cloud Run
+- **Database**: Cloud SQL (PostgreSQL)
 
-### Backend
-- FastAPI
-- Python 3.11
-- Uvicorn
-- PostgreSQL 15
+## Key Features
 
-## License
+- User authentication (JWT)
+- Survey creation and editing
+- Survey publishing with public URLs
+- Public survey response submission
+- CSV export of survey responses
+- API-driven frontend/backend separation
+- Real-time form validation
 
-MIT
+## Possible Improvements
+
+- Add unit and end-to-end tests
+- Shared types between frontend and backend
+- Survey analytics and dashboards
+- Improved error handling and observability
+- Response pagination and filtering
+- Survey templates
+- Conditional logic and branching
+- File upload support for responses
+- File uploads for responses (not implemented yet; planned: pre-signed URLs + GCS + DB metadata)
+
