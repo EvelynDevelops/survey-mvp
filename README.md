@@ -51,8 +51,6 @@ Frontend dev server runs at: http://localhost:3000
 
 ### Backend Development
 
-#### Option 1: Run Locally
-
 ```bash
 cd backend
 pip install -r requirements.txt
