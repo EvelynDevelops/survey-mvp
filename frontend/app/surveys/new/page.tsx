@@ -14,7 +14,7 @@ import { validateSurvey } from "@/lib/survey-builder/validators";
 import type { Survey } from "@/lib/survey-builder/types";
 
 import { publishSurveyFlow } from "@/lib/surveysAdmin";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getUserId } from "@/lib/auth";
 
 const STORAGE_KEY = "surveyBuilderDraft";
 
@@ -139,7 +139,13 @@ export default function NewSurveyPage() {
 
   const goDashboard = React.useCallback(() => {
     if (!publishResult) return;
-    router.push(`/surveys/${publishResult.id}/dashboard`);
+
+    const userId = getUserId();
+    if (userId) {
+      router.push(`/dashboard/${userId}`);
+    } else {
+      router.push('/');
+    }
   }, [publishResult, router]);
 
   return (
