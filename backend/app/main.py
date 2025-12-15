@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from app.api.routes import health, auth, surveys, public
+from app.api.routes import health, auth, surveys, public, dashboard
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,6 +22,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(surveys.router)
 app.include_router(public.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/")
