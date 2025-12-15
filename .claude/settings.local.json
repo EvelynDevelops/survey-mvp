@@ -17,7 +17,11 @@
       "Bash(python -m app.db.init_tables:*)",
       "Bash(python -m backend.app.db.init_tables:*)",
       "Bash(pytest:*)",
-      "Bash(pip uninstall:*)"
+      "Bash(pip uninstall:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)"
     ]
   }
 }
