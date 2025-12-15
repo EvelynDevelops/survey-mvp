@@ -186,7 +186,11 @@ def get_survey_dashboard(
     """
     Get dashboard summary for a survey.
 
-    Returns completed response count and last submission time.
+    Returns:
+    - total_submissions: Number of submitted responses
+    - last_submitted_at: Timestamp of the most recent submission (null if no submissions)
+    - slug: Survey slug for building public link (null if not published)
+
     Only the survey owner can view dashboard stats.
     """
     # Get survey and verify ownership
@@ -205,8 +209,8 @@ def get_survey_dashboard(
 
     # Query aggregate stats for submitted responses
     stats = db.query(
-        func.count(Response.id).label("completed"),
-        func.max(Response.submitted_at).label("last_submission_at")
+        func.count(Response.id).label("total_submissions"),
+        func.max(Response.submitted_at).label("last_submitted_at")
     ).filter(
         Response.survey_id == survey_id,
         Response.status == "submitted"
@@ -214,6 +218,7 @@ def get_survey_dashboard(
 
     return SurveyDashboardResponse(
         survey_id=survey_id,
-        completed=stats.completed or 0,
-        last_submission_at=stats.last_submission_at
+        slug=survey.slug,
+        total_submissions=stats.total_submissions or 0,
+        last_submitted_at=stats.last_submitted_at
     )

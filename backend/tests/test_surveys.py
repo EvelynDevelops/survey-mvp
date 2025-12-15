@@ -412,3 +412,170 @@ def test_republish_survey_returns_same_slug(authenticated_client):
 
     assert first_slug == second_slug
     assert second_publish.json()["status"] == "published"
+
+
+def test_dashboard_no_submissions(authenticated_client):
+    """Test dashboard returns zero submissions and null timestamp for survey without responses."""
+    # Create and publish survey
+    survey_response = authenticated_client.post(
+        "/surveys",
+        json={"title": "Test Survey", "description": "No submissions yet"}
+    )
+    survey_id = survey_response.json()["id"]
+
+    publish_response = authenticated_client.post(f"/surveys/{survey_id}/publish")
+    slug = publish_response.json()["slug"]
+
+    # Get dashboard stats
+    response = authenticated_client.get(f"/surveys/{survey_id}/dashboard")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["survey_id"] == survey_id
+    assert data["slug"] == slug
+    assert data["total_submissions"] == 0
+    assert data["last_submitted_at"] is None
+
+
+def test_dashboard_with_submissions(authenticated_client, test_db):
+    """Test dashboard returns correct submission count and last submission time."""
+    from datetime import datetime, timezone, timedelta
+    from app.db.orms.response import Response
+    from tests.conftest import TestingSessionLocal
+
+    # Create and publish survey
+    survey_response = authenticated_client.post(
+        "/surveys",
+        json={"title": "Test Survey"}
+    )
+    survey_id = survey_response.json()["id"]
+
+    publish_response = authenticated_client.post(f"/surveys/{survey_id}/publish")
+    slug = publish_response.json()["slug"]
+
+    # Manually create submitted responses with different timestamps
+    db = TestingSessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+
+        # Create 3 submitted responses
+        response1 = Response(
+            survey_id=survey_id,
+            status="submitted",
+            submitted_at=now - timedelta(hours=2)
+        )
+        response2 = Response(
+            survey_id=survey_id,
+            status="submitted",
+            submitted_at=now - timedelta(hours=1)
+        )
+        response3 = Response(
+            survey_id=survey_id,
+            status="submitted",
+            submitted_at=now  # Most recent
+        )
+
+        # Create 1 in_progress response (should not be counted)
+        response4 = Response(
+            survey_id=survey_id,
+            status="in_progress",
+            submitted_at=None
+        )
+
+        db.add_all([response1, response2, response3, response4])
+        db.commit()
+    finally:
+        db.close()
+
+    # Get dashboard stats
+    response = authenticated_client.get(f"/surveys/{survey_id}/dashboard")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["survey_id"] == survey_id
+    assert data["slug"] == slug
+    assert data["total_submissions"] == 3  # Only submitted responses counted
+
+    # Check last_submitted_at is the most recent one
+    last_submitted_str = data["last_submitted_at"]
+    if last_submitted_str.endswith('Z'):
+        last_submitted = datetime.fromisoformat(last_submitted_str.replace('Z', '+00:00'))
+    else:
+        last_submitted = datetime.fromisoformat(last_submitted_str)
+        if last_submitted.tzinfo is None:
+            last_submitted = last_submitted.replace(tzinfo=timezone.utc)
+
+    assert abs((last_submitted - now).total_seconds()) < 2  # Within 2 seconds
+
+
+def test_dashboard_draft_survey_no_slug(authenticated_client):
+    """Test dashboard returns null slug for unpublished draft survey."""
+    # Create survey but don't publish
+    survey_response = authenticated_client.post(
+        "/surveys",
+        json={"title": "Draft Survey"}
+    )
+    survey_id = survey_response.json()["id"]
+
+    # Get dashboard stats
+    response = authenticated_client.get(f"/surveys/{survey_id}/dashboard")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["survey_id"] == survey_id
+    assert data["slug"] is None  # Draft survey has no slug
+    assert data["total_submissions"] == 0
+    assert data["last_submitted_at"] is None
+
+
+def test_dashboard_unauthorized_access(authenticated_client, test_db):
+    """Test user cannot access another user's survey dashboard."""
+    from app.db.orms.user import User
+    from app.core.security import hash_password
+    from app.core.deps import get_current_user
+    from app.db import get_db
+    from app.main import app
+
+    # Create survey with first user
+    survey_response = authenticated_client.post(
+        "/surveys",
+        json={"title": "User 1 Survey"}
+    )
+    survey_id = survey_response.json()["id"]
+
+    # Create second user
+    from tests.conftest import TestingSessionLocal
+    db = TestingSessionLocal()
+    user2 = User(email="dashboard_user2@example.com", password_hash=hash_password("pass"))
+    db.add(user2)
+    db.commit()
+    db.refresh(user2)
+    db.close()
+
+    # Override with second user
+    def override_current_user():
+        return user2
+
+    from tests.conftest import override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
+    app.dependency_overrides[get_db] = override_get_db
+
+    from fastapi.testclient import TestClient
+    with TestClient(app) as client2:
+        # Try to access dashboard as user2
+        response = client2.get(f"/surveys/{survey_id}/dashboard")
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Not authorized to view this survey's dashboard"
+
+    app.dependency_overrides.clear()
+
+
+def test_dashboard_nonexistent_survey(authenticated_client):
+    """Test dashboard returns 404 for non-existent survey."""
+    fake_uuid = "00000000-0000-0000-0000-000000000000"
+
+    response = authenticated_client.get(f"/surveys/{fake_uuid}/dashboard")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Survey not found"
