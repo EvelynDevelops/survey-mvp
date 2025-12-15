@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { DashboardSurvey } from "@/lib/dashboard";
+import { getToken } from "@/lib/auth";
+import { config } from "@/lib/config";
 
 function formatTime(ts: string | null) {
   if (!ts) return "No submissions yet";
@@ -12,6 +14,7 @@ function formatTime(ts: string | null) {
 export function SurveyCard({ survey }: { survey: DashboardSurvey }) {
   const isPublished = survey.status === "published";
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Get full public URL
   const publicUrl = survey.slug
@@ -27,6 +30,62 @@ export function SurveyCard({ survey }: { survey: DashboardSurvey }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleDownloadResponses = async () => {
+    setIsDownloading(true);
+
+    try {
+      const token = getToken();
+      if (!token) {
+        alert('Please log in to download responses');
+        return;
+      }
+
+      const response = await fetch(
+        `${config.apiBaseUrl}/surveys/${survey.id}/responses/export?format=csv`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to download responses' }));
+        alert(errorData.detail || 'Failed to download responses');
+        return;
+      }
+
+      // Get the blob and create download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `survey_${survey.title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/"/g, '');
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('An error occurred while downloading responses');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -99,12 +158,13 @@ export function SurveyCard({ survey }: { survey: DashboardSurvey }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </Link>
-            <Link
-              href={`/surveys/${survey.id}/responses`}
-              className="text-sm font-medium text-navy/70 hover:underline"
+            <button
+              onClick={handleDownloadResponses}
+              disabled={survey.total_submissions === 0 || isDownloading}
+              className="text-sm font-medium text-navy/70 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
             >
-              View responses
-            </Link>
+              {isDownloading ? 'Downloading...' : 'Download responses'}
+            </button>
           </>
         ) : (
           <Link
