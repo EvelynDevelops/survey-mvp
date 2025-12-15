@@ -34,3 +34,35 @@ export function clearToken(): void {
 export function isAuthenticated(): boolean {
   return getToken() !== null;
 }
+
+/**
+ * Decode JWT token payload without verification.
+ * Note: This is only for reading claims, not for validation.
+ */
+export function decodeToken(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const payload = parts[1];
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch (error) {
+    console.error('Failed to decode token:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user ID from the stored token.
+ */
+export function getUserId(): string | null {
+  const token = getToken();
+  if (!token) return null;
+
+  const payload = decodeToken(token);
+  if (!payload) return null;
+
+  // JWT typically uses 'sub' (subject) claim for user ID
+  return (payload.sub as string) || null;
+}

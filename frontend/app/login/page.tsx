@@ -17,7 +17,17 @@ export default function LoginPage() {
       });
 
       setToken(response.access_token);
-      router.push('/dashboard');
+
+      // Get user ID from token and redirect to user's dashboard
+      const { getUserId } = await import('@/lib/auth');
+      const userId = getUserId();
+
+      if (userId) {
+        router.push(`/dashboard/${userId}`);
+      } else {
+        // Fallback to /dashboard if we can't get userId
+        router.push('/dashboard');
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         throw new Error(err.message);
