@@ -1,5 +1,7 @@
 // frontend/lib/survey-builder/types.ts
 
+export const MAX_QUESTIONS = 100;
+
 export type SurveyStatus = "draft" | "published";
 
 export type QuestionType = "single" | "multiple" | "text" | "image";
