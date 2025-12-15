@@ -8,6 +8,7 @@ import { QuestionList } from "@/components/survey-builder/canvas/QuestionList";
 import { SidePanel } from "@/components/survey-builder/side-panel/SidePanel";
 
 import { useSurveyBuilder } from "@/hooks/useSurveyBuilder";
+import { validateSurvey } from "@/lib/survey-builder/validators";
 
 export default function NewSurveyPage() {
   const {
@@ -40,12 +41,27 @@ export default function NewSurveyPage() {
     clearError,
   } = useSurveyBuilder();
 
-  // Optional: clear error automatically (BuilderTopBar also supports onClearError)
-  React.useEffect(() => {
-    if (!error) return;
-    const t = setTimeout(() => clearError(), 3000);
-    return () => clearTimeout(t);
-  }, [error, clearError]);
+  const handlePreview = React.useCallback(() => {
+    const errors = validateSurvey(survey);
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+      return;
+    }
+
+    // TODO: route to preview page (read-only rendering)
+    alert("Preview is valid ✅ (TODO: implement preview page)");
+  }, [survey]);
+
+  const handlePublish = React.useCallback(() => {
+    const errors = validateSurvey(survey);
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+      return;
+    }
+
+    // TODO: call publish API
+    alert("Publish is valid ✅ (TODO: implement publish API)");
+  }, [survey]);
 
   return (
     <BuilderShell
@@ -59,8 +75,8 @@ export default function NewSurveyPage() {
           error={error}
           onClearError={clearError}
           onAddQuestion={addQuestion}
-          // onPreview={() => {}}
-          // onPublish={() => {}}
+          onPreview={handlePreview}
+          onPublish={handlePublish}
         />
       }
       canvas={
