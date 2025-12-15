@@ -14,11 +14,19 @@ import { validateSurvey } from "@/lib/survey-builder/validators";
 import type { Survey } from "@/lib/survey-builder/types";
 
 import { publishSurveyFlow } from "@/lib/surveysAdmin";
+import { isAuthenticated } from "@/lib/auth";
 
 const STORAGE_KEY = "surveyBuilderDraft";
 
 export default function NewSurveyPage() {
   const router = useRouter();
+
+  // Check authentication on mount
+  React.useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login?redirect=/surveys/new');
+    }
+  }, [router]);
 
   // 1) Load draft once on mount
   const [draft, setDraft] = React.useState<Survey | undefined>(undefined);

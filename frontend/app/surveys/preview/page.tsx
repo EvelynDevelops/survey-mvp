@@ -7,10 +7,18 @@ import { useSurveyDraft } from "@/hooks/useSurveyDraft";
 import { PreviewTopBar } from "@/components/survey-preview/PreviewTopBar";
 import { SurveyPreviewCard } from "@/components/survey-preview/SurveyPreviewCard";
 import { PreviewSummaryCard } from "@/components/survey-preview/PreviewSummaryCard";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function SurveyPreviewPage() {
   const router = useRouter();
   const { survey, isLoaded } = useSurveyDraft({ storageKey: "surveyBuilderDraft" });
+
+  // Check authentication on mount
+  React.useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login?redirect=/surveys/preview');
+    }
+  }, [router]);
 
   const onBack = React.useCallback(() => {
     router.push("/surveys/new");

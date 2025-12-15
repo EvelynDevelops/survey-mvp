@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { api, ApiError } from '@/lib/api';
@@ -8,6 +8,8 @@ import { setToken } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
 
   const handleSubmit = async (values: Record<string, string>) => {
     try {
@@ -17,6 +19,12 @@ export default function LoginPage() {
       });
 
       setToken(response.access_token);
+
+      // Check if there's a redirect URL
+      if (redirect) {
+        router.push(redirect);
+        return;
+      }
 
       // Get user ID from token and redirect to user's dashboard
       const { getUserId } = await import('@/lib/auth');
