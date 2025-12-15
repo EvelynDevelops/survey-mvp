@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AuthCard } from '@/components/AuthCard';
+import { AuthCard } from '@/components/auth/AuthCard';
 import { api, ApiError } from '@/lib/api';
 
 export default function RegisterPage() {

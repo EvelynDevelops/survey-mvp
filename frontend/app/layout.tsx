@@ -16,9 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="min-h-screen bg-gray-50">
-          {/* Header */}
-          <header className="bg-navy border-b border-slate-800">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+          {/* Header - Fixed */}
+          <header className="fixed top-0 left-0 right-0 bg-navy border-b border-slate-800 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Left: Logo */}
@@ -37,10 +37,17 @@ export default function RootLayout({
             </div>
           </header>
 
-          {/* Main Content */}
-          <main>
+          {/* Main Content - with padding for fixed header */}
+          <main className="flex-1 pt-16">
             {children}
           </main>
+
+          {/* Footer */}
+          <footer className="bg-navy py-6">
+            <div className="text-center text-white text-sm">
+                Built with care by Evelyn
+            </div>
+          </footer>
         </div>
       </body>
     </html>
