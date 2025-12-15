@@ -2,6 +2,8 @@
 
 export const MAX_QUESTIONS = 100;
 
+export type QuestionId = string;
+
 export type SurveyStatus = "draft" | "published";
 
 export type QuestionType = "single" | "multiple" | "text" | "image";
@@ -47,6 +49,9 @@ export type SingleChoiceQuestion = BaseQuestion & {
 export type MultipleChoiceQuestion = BaseQuestion & {
   type: "multiple";
   options: ChoiceOption[];
+  constraints?: {
+    maxSelected?: number;
+  };
 };
 
 export type TextQuestion = BaseQuestion & {
@@ -57,6 +62,10 @@ export type TextQuestion = BaseQuestion & {
    */
   multiline?: boolean;
   maxLength?: number;
+  constraints?: {
+    maxLength?: number;
+    minLength?: number;
+  };
 };
 
 export type ImageUploadQuestion = BaseQuestion & {
@@ -70,6 +79,13 @@ export type Question =
   | TextQuestion
   | ImageUploadQuestion;
 
+export type QuestionByType = {
+  single: SingleChoiceQuestion;
+  multiple: MultipleChoiceQuestion;
+  text: TextQuestion;
+  image: ImageUploadQuestion;
+};
+
 export type Survey = {
   id: string;
   title: string;
@@ -80,8 +96,9 @@ export type Survey = {
 
   questions: Question[];
 
-  createdAt?: number;
-  updatedAt?: number;
+  createdAt?: number | string;
+  updatedAt?: number | string;
+  version?: number;
 };
 
 /** Type guards (optional helpers; nice for non-TSX files) */
