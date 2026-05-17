@@ -55,7 +55,7 @@ Frontend dev server runs at: http://localhost:3000
 cd backend
 pip install -r requirements.txt
 docker-compose up -d db
-alembic upgrade head
+python -m app.db.init_tables
 uvicorn app.main:app --reload --port 8000
 ```
 
